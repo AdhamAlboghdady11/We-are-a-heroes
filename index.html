@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>اختبارات أولى بكالوريا مصر</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Tahoma,sans-serif;background:#eef2ff;color:#172033}
+.wrap{max-width:760px;margin:25px auto;padding:16px}
+.card{background:#fff;border-radius:24px;padding:28px;box-shadow:0 10px 30px #0001}
+h1,h2{margin-top:0}
+input{width:100%;padding:15px;margin:8px 0;border:1px solid #ccd3df;border-radius:14px;font-size:17px}
+button{width:100%;padding:16px;margin-top:12px;border:0;border-radius:14px;font-size:18px;font-weight:bold;cursor:pointer}
+.subject{background:#4f46e5;color:white}
+.subject.logic{background:#e5e7eb;color:#111827}
+.answer{background:#f3f4f6;text-align:right;color:#111827;border:1px solid #ddd}
+.answer.selected{background:#c7d2fe;border-color:#4f46e5}
+.top{display:flex;justify-content:space-between;gap:10px;margin-bottom:15px;font-weight:bold}
+#timer{color:#dc2626}
+.progress{height:8px;background:#e5e7eb;border-radius:8px;overflow:hidden;margin:12px 0 20px}
+#bar{height:100%;width:0;background:#4f46e5}
+.hidden{display:none}
+.review{padding:14px;margin:10px 0;border-radius:14px;background:#f8fafc;border-right:5px solid #94a3b8}
+.correct{border-right-color:#16a34a}.wrong{border-right-color:#dc2626}
+.small{color:#64748b}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="card" id="start">
+  <h1>أولى بكالوريا مصر — اختبارات سبتمبر</h1>
+  <p class="small">20 سؤالًا — 15 دقيقة — تصحيح ونتيجة بالتفصيل</p>
+  <input id="name" placeholder="اسم الطالب">
+  <input id="code" placeholder="الكود (اختياري)">
+  <button class="subject" onclick="startQuiz('arabic')">📝 اختبار اللغة العربية</button>
+  <button class="subject logic" onclick="startQuiz('philosophy')">🧠 اختبار الفلسفة والمنطق</button>
+</div>
+
+<div class="card hidden" id="quiz">
+  <div class="top"><span id="subjectTitle"></span><span id="timer">15:00</span></div>
+  <div class="progress"><div id="bar"></div></div>
+  <h2 id="qText"></h2>
+  <div id="answers"></div>
+  <button class="subject" id="next" onclick="nextQuestion()">التالي</button>
+</div>
+
+<div class="card hidden" id="result">
+  <h2>🎉 النتيجة</h2>
+  <div id="score"></div>
+  <div id="review"></div>
+  <button class="subject" onclick="location.reload()">اختبار جديد</button>
+</div>
+</div>
+
+<script>
+const arabicQuestions = [
+["في نص «شباب تسامى للعمل وكهول» القيمة الأبرز هي:",["الكسل","العمل والاجتهاد","العزلة","الخوف"],1],
+["الشعر الجاهلي ينتمي إلى:",["العصر الجاهلي","العصر العباسي","العصر الحديث","العصر الأندلسي"],0],
+["النثر الجاهلي من فنونه:",["الخطابة","الموشحات","المقامات","المسرح"],0],
+["الحقيقة هي استعمال اللفظ في:",["غير معناه الأصلي","معناه الأصلي","معنى مستحيل","معنى مجازي فقط"],1],
+["المجاز هو استعمال اللفظ في:",["معناه الأصلي فقط","غير معناه الأصلي لعلاقة مع قرينة","معنى واحد دائمًا","لا معنى له"],1],
+["التشبيه يتكون أساسًا من:",["مشبه ومشبه به وأداة ووجه شبه","فاعل ومفعول","مبتدأ وخبر","فعل وفاعل"],0],
+["الفعل الناقص هو الذي:",["يكتفي بمرفوعه","يحتاج إلى خبر ليتم معناه","لا يدخل على الجملة الاسمية","لا يتصرف"],1],
+["من أفعال المقاربة:",["كاد","ليس","أصبح","ظل"],0],
+["«أصبح الجو معتدلًا» أصبح فعل:",["تام","ناقص","أمر","جامد لا عمل له"],1],
+["من موضوعات القراءة «مكارم الأخلاق» الدعوة إلى:",["الأخلاق الحسنة","الخصام","الأنانية","إهمال الآخرين"],0],
+["الخبر في «الطالب مجتهد» هو:",["الطالب","مجتهد","الـ","لا يوجد"],1],
+["الجملة الاسمية تبدأ غالبًا بـ:",["اسم","فعل أمر","حرف جر","أداة نفي فقط"],0],
+["من سمات الشعر الجاهلي:",["قوة الألفاظ","الاعتماد على المصطلحات العلمية الحديثة","قلة الصور","عدم وصف البيئة"],0],
+["التشبيه المركب يكون فيه وجه الشبه:",["صورة منتزعة من متعدد","كلمة واحدة دائمًا","حرف جر","فعلًا فقط"],0],
+["«العلم نور» مثال على:",["حقيقة لغوية","تشبيه بليغ","استفهام","نهي"],1],
+["الفعل «ظل» من:",["الأفعال الناقصة","أفعال المقاربة فقط","حروف الجر","الأسماء"],0],
+["القصة المقررة في سبتمبر تبدأ بالفصول:",["1:3","4:6","7:9","10:12"],0],
+["التعبير الوظيفي يستخدم من أجل:",["موقف عملي محدد","الخيال فقط","الشعر فقط","الأساطير"],0],
+["من خصائص الخطابة:",["التأثير في الجمهور","عدم مخاطبة الجمهور","الاعتماد على الرموز فقط","غياب الفكرة"],0],
+["البلاغة تهتم بـ:",["مطابقة الكلام لمقتضى الحال","حفظ الكلمات فقط","الإملاء فقط","عدد صفحات النص"],0]
+];
+
+const philosophyQuestions = [
+["التفكير الإنساني هو عملية عقلية تهدف إلى:",["حل المشكلات وفهم المواقف","النوم","الحفظ فقط","تجنب الأسئلة"],0],
+["من أهمية التفكير الإنساني:",["حل المشكلات والتخطيط للمستقبل","زيادة الخوف","منع التعلم","رفض الأدلة"],0],
+["مثال على التفكير الخرافي:",["تعليق تميمة لجلب الحظ دون دليل","إجراء تجربة علمية","فحص الأدلة","تحليل حجة"],0],
+["التفكير العلمي يعتمد على:",["الملاحظة والتجربة والأسباب","الخرافة","الشائعات","التخمين فقط"],0],
+["التفكير الفلسفي يبحث عن:",["الأسباب العميقة والعامة","الحظ فقط","المعلومة السطحية فقط","الإجابة بلا سؤال"],0],
+["التفكير النقدي يعني:",["فحص الأدلة والحجج","تصديق كل شيء","رفض التفكير","الحفظ دون فهم"],0],
+["من خصائص التفكير الإبداعي:",["الطلاقة والمرونة والأصالة","التقليد فقط","الجمود","رفض البدائل"],0],
+["تتميز الفلسفة عن العلم بأنها تهتم أكثر بـ:",["القضايا العامة والمجردة","التجارب المعملية فقط","قياس الحرارة فقط","جمع الأرقام فقط"],0],
+["من خصائص التفكير الفلسفي:",["التساؤل والتحليل والنقد","التسليم دون سؤال","الخرافة","رفض الحوار"],0],
+["التفكير الفلسفي يتصف بـ:",["التأمل والنقد وطرح الأسئلة","الحفظ فقط","التقليد فقط","عدم استخدام العقل"],0],
+["المنطق يساعدنا على:",["تمييز التفكير الصحيح من الخاطئ","منع التفكير","رفض الأدلة","إلغاء الحوار"],0],
+["أهمية المنطق تتمثل في:",["تمييز الأدلة السليمة من غير السليمة","زيادة الشائعات","منع الاستنتاج","إلغاء القضايا"],0],
+["الحد المنطقي هو:",["لفظ يدل على معنى يصلح أن يكون جزءًا من قضية","جملة طويلة فقط","علامة ترقيم","فعل فقط"],0],
+["في قضية «الطالب مجتهد» الحد الذي نتحدث عنه هو:",["الطالب","مجتهد","هو فقط","النقطة"],0],
+["في قضية «الطالب مجتهد» الحد المحمول هو:",["الطالب","مجتهد","في","الـ"],1],
+["الرابطة في القضية المنطقية تحدد:",["العلاقة بين الموضوع والمحمول","عدد الكلمات","زمن الفعل","نوع الخط"],0],
+["الرابطة الموجبة تدل على:",["الاتصال بين الموضوع والمحمول","الانفصال بينهما","عدم وجود قضية","السؤال"],0],
+["الرابطة السالبة تدل على:",["الانفصال بين الموضوع والمحمول","الاتصال بينهما","التشبيه","التعجب"],0],
+["«الحديد هو معدن» قضية ذات رابطة:",["موجبة","سالبة","استفهامية","أمرية"],0],
+["«الحديد ليس نباتًا» قضية ذات رابطة:",["موجبة","سالبة","تعجبية","شرطية"],1]
+];
+
+let questions=[], current=0, chosen=[], timer=900, interval;
+
+function shuffleQuestion(q){
+  const choices=q[1].map((text,i)=>({text,correct:i===q[2]}));
+  for(let i=choices.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [choices[i],choices[j]]=[choices[j],choices[i]];
+  }
+  q[1]=choices.map(x=>x.text);
+  q[2]=choices.findIndex(x=>x.correct);
+}
+function startQuiz(type){
+  const name=document.getElementById("name").value.trim();
+  if(!name){alert("من فضلك اكتب اسم الطالب أولًا");return;}
+  questions = (type==="philosophy" ? philosophyQuestions : arabicQuestions).map(q=>[q[0],[...q[1]],q[2]]);
+  questions.forEach(shuffleQuestion);
+  current=0; chosen=Array(questions.length).fill(-1); timer=900;
+  document.getElementById("start").classList.add("hidden");
+  document.getElementById("quiz").classList.remove("hidden");
+  document.getElementById("subjectTitle").textContent=type==="philosophy"?"🧠 الفلسفة والمنطق":"📝 اللغة العربية";
+  clearInterval(interval); interval=setInterval(tick,1000);
+  renderQuestion();
+}
+function tick(){
+  timer--;
+  const m=String(Math.floor(timer/60)).padStart(2,"0"), s=String(timer%60).padStart(2,"0");
+  document.getElementById("timer").textContent=m+":"+s;
+  if(timer<=0){clearInterval(interval);finish();}
+}
+function renderQuestion(){
+  const q=questions[current];
+  document.getElementById("qText").textContent=(current+1)+") "+q[0];
+  const box=document.getElementById("answers"); box.innerHTML="";
+  q[1].forEach((a,i)=>{
+    const b=document.createElement("button");
+    b.className="answer"+(chosen[current]===i?" selected":"");
+    b.textContent=a;
+    b.onclick=()=>{chosen[current]=i;renderQuestion();};
+    box.appendChild(b);
+  });
+  document.getElementById("next").textContent=current===questions.length-1?"إنهاء الاختبار":"التالي";
+  document.getElementById("bar").style.width=((current+1)/questions.length*100)+"%";
+}
+function nextQuestion(){
+  if(chosen[current]===-1){alert("اختار إجابة أولًا");return;}
+  if(current<questions.length-1){current++;renderQuestion();}else finish();
+}
+function finish(){
+  clearInterval(interval);
+  let correct=0;
+  questions.forEach((q,i)=>{if(chosen[i]===q[2])correct++;});
+  const pct=Math.round(correct/questions.length*100);
+  document.getElementById("quiz").classList.add("hidden");
+  document.getElementById("result").classList.remove("hidden");
+  document.getElementById("score").innerHTML="<h3>"+document.getElementById("name").value+" — "+correct+" / "+questions.length+" ("+pct+"%)</h3><p>الصحيح: "+correct+" | الخطأ: "+(questions.length-correct)+"</p>";
+  let r="";
+  questions.forEach((q,i)=>{
+    const ok=chosen[i]===q[2];
+    r+=`<div class="review ${ok?"correct":"wrong"}"><b>${i+1}) ${q[0]}</b><br>إجابتك: ${chosen[i]>=0?q[1][chosen[i]]:"لم تُجب"}<br>الإجابة الصحيحة: ${q[1][q[2]]}</div>`;
+  });
+  document.getElementById("review").innerHTML=r;
+}
+</script>
+</body>
+</html>
